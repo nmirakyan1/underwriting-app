@@ -35,16 +35,21 @@ def calculate_underwriting(
     coc_annualized = cash_on_cash_return / lease_term
 
     return {
-        "NOI (Final Year)": cash_flows[-1],
-        "Cap Rate": cap_rate,
-        "Exit Value": exit_value,
-        "Annual Cash Flows": cash_flows,
-        "Net Cash Flow (After Debt)": net_cash_flow,
+        "Purchase Price": purchase_price,
         "Total Debt Payments": total_debt_payments,
+        "Net Operating Income": cash_flows[-1],
+        "Sale Closing Costs": exit_value * 0.04,
+        "All In Cost": purchase_price + total_debt_payments,
+        "Equity Needed": purchase_price * 0.3,
+        "Target Sale": exit_value,
         "Total Profit": total_profit,
         "Deal ROI": roi,
+        "LP Pref": total_profit * 0.2,
+        "LP Split": total_profit * 0.5,
+        "Total LP Returns": total_profit * 0.7,
         "Cash on Cash Return": cash_on_cash_return,
         "CoC Annualized": coc_annualized,
+        "XIRR": coc_annualized * 0.8,
         "Estimated Timeframe (Months)": lease_term * 12
     }
 
@@ -76,22 +81,9 @@ if st.button("Calculate"):
     # Properly display results in Streamlit
     st.subheader("📊 Underwriting Results")
     
-    st.write(f"**🏢 Purchase Price:** ${purchase_price:,.2f}")
-    st.write(f"**✅ NOI (Final Year):** ${result['NOI (Final Year)']:.2f}")
-    st.write(f"**📈 Cap Rate:** {result['Cap Rate']:.2%}")
-    st.write(f"**🏢 Exit Value:** ${result['Exit Value']:.2f}")
-    st.write(f"**💳 Total Debt Payments:** ${result['Total Debt Payments']:.2f}")
-    st.write(f"**💰 Total Profit:** ${result['Total Profit']:.2f}")
-    st.write(f"**📊 ROI:** {result['Deal ROI']:.2f}%")
-    st.write(f"**📉 Cash on Cash Return:** {result['Cash on Cash Return']:.2f}%")
-    st.write(f"**📅 Annualized CoC:** {result['CoC Annualized']:.2f}%")
-    st.write(f"**⏳ Estimated Timeframe:** {result['Estimated Timeframe (Months)']} months")
-
-    # Display Annual Cash Flow in Table Format
-    st.subheader("💰 Annual Cash Flow Projections")
-    cash_flow_df = pd.DataFrame({
-        "Year": [i + 1 for i in range(len(result["Annual Cash Flows"]))],
-        "Annual Cash Flow ($)": result["Annual Cash Flows"],
-        "Net Cash Flow After Debt ($)": result["Net Cash Flow (After Debt)"]
-    })
-    st.table(cash_flow_df)
+    for key, value in result.items():
+        if isinstance(value, float):
+            formatted_value = f"${value:,.2f}" if key not in ["Deal ROI", "Cash on Cash Return", "CoC Annualized", "XIRR"] else f"{value:.2f}%"
+        else:
+            formatted_value = value
+        st.write(f"**{key}:** {formatted_value}")
