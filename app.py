@@ -1,53 +1,32 @@
-import numpy as np
+import streamlit as st
 import pandas as pd
 
 def calculate_underwriting(
-    purchase_price, 
-    rent_per_sf, 
-    property_size, 
-    annual_expenses, 
-    expense_growth_rate,
-    lease_term,
-    exit_cap_rate,
-    annual_rent_growth,
-    loan_amount=0,
-    interest_rate=0,
-    loan_term=0
+    purchase_price, rent_per_sf, property_size, annual_expenses, 
+    expense_growth_rate, lease_term, exit_cap_rate, annual_rent_growth, 
+    loan_amount=0, interest_rate=0, loan_term=0
 ):
-    """
-    AI Underwriting Calculation for Retail/Industrial Properties.
-    Returns NOI, Cap Rate, and Cash Flow Projections.
-    """
-    
     # Calculate Gross Rental Income
     annual_rent = rent_per_sf * property_size
     cash_flows = []
-    
+
     for year in range(lease_term):
-        # Apply rent escalation
         annual_rent *= (1 + annual_rent_growth)
-        
-        # Apply expense inflation
         annual_expenses *= (1 + expense_growth_rate)
-        
-        # Calculate Net Operating Income (NOI)
         noi = annual_rent - annual_expenses
-        
         cash_flows.append(noi)
-    
-    # Calculate Cap Rate
+
+    # Cap Rate & Exit Value
     cap_rate = cash_flows[-1] / purchase_price
-    
-    # Calculate Exit Value
     exit_value = cash_flows[-1] / exit_cap_rate
-    
+
     # Loan Payments (if applicable)
     if loan_amount > 0:
         loan_payment = (loan_amount * interest_rate) / (1 - (1 + interest_rate) ** -loan_term)
         net_cash_flow = [noi - loan_payment for noi in cash_flows]
     else:
         net_cash_flow = cash_flows
-    
+
     return {
         "NOI (Final Year)": cash_flows[-1],
         "Cap Rate": cap_rate,
@@ -56,20 +35,43 @@ def calculate_underwriting(
         "Net Cash Flow (After Debt)": net_cash_flow
     }
 
-# Example Run
-result = calculate_underwriting(
-    purchase_price=2000000,
-    rent_per_sf=20,
-    property_size=15000,
-    annual_expenses=50000,
-    expense_growth_rate=0.03,
-    lease_term=10,
-    exit_cap_rate=0.06,
-    annual_rent_growth=0.02,
-    loan_amount=1000000,
-    interest_rate=0.05,
-    loan_term=20
-)
+# Streamlit UI
+st.title("AI Underwriting Tool for Retail & Industrial Properties")
 
-# Display results
-result
+# User Inputs
+purchase_price = st.number_input("Purchase Price ($)", value=2000000)
+rent_per_sf = st.number_input("Rent per SF ($)", value=20.0)
+property_size = st.number_input("Property Size (SF)", value=15000)
+annual_expenses = st.number_input("Annual Expenses ($)", value=50000)
+expense_growth_rate = st.number_input("Expense Growth Rate (%)", value=3.0) / 100
+lease_term = st.number_input("Lease Term (Years)", value=10)
+exit_cap_rate = st.number_input("Exit Cap Rate (%)", value=6.0) / 100
+annual_rent_growth = st.number_input("Annual Rent Growth (%)", value=2.0) / 100
+
+loan_amount = st.number_input("Loan Amount ($)", value=1000000)
+interest_rate = st.number_input("Loan Interest Rate (%)", value=5.0) / 100
+loan_term = st.number_input("Loan Term (Years)", value=20)
+
+# Streamlit UI for Displaying Results
+if st.button("Calculate"):
+    result = calculate_underwriting(
+        purchase_price, rent_per_sf, property_size, annual_expenses, 
+        expense_growth_rate, lease_term, exit_cap_rate, annual_rent_growth, 
+        loan_amount, interest_rate, loan_term
+    )
+    
+    # Properly display results in Streamlit
+    st.subheader("📊 Underwriting Results")
+
+    st.write(f"**✅ NOI (Final Year):** ${result['NOI (Final Year)']:.2f}")
+    st.write(f"**📈 Cap Rate:** {result['Cap Rate']:.2%}")
+    st.write(f"**🏢 Exit Value:** ${result['Exit Value']:.2f}")
+
+    # Display Annual Cash Flow in Table Format
+    st.subheader("💰 Annual Cash Flow Projections")
+    cash_flow_df = pd.DataFrame({
+        "Year": [i + 1 for i in range(len(result["Annual Cash Flows"]))],
+        "Annual Cash Flow ($)": result["Annual Cash Flows"],
+        "Net Cash Flow After Debt ($)": result["Net Cash Flow (After Debt)"]
+    })
+    st.table(cash_flow_df)
